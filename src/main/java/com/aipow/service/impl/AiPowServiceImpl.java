@@ -3,16 +3,19 @@ package com.aipow.service.impl;
 import com.aipow.model.ClientSide;
 import com.aipow.payload.request.AiPowRequest;
 import com.aipow.payload.response.AiPowResponse;
+import com.aipow.payload.response.IpReputationResponse;
 import com.aipow.policies.Policy1;
 import com.aipow.policies.Policy2;
 import com.aipow.policies.Policy3;
 import com.aipow.puzzle.Puzzle;
 import com.aipow.service.AiPowService;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.google.gson.Gson;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.Response;
 import org.springframework.stereotype.Service;
 
-import javax.servlet.http.HttpServletRequest;
-import java.io.UnsupportedEncodingException;
+import java.io.IOException;
 import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
 import java.util.Date;
@@ -24,7 +27,7 @@ public class AiPowServiceImpl implements AiPowService {
 //    HttpServletRequest httpServletRequest;
 
     @Override
-    public AiPowResponse getAiPowResponse(AiPowRequest aiPowRequest) throws UnsupportedEncodingException, NoSuchAlgorithmException {
+    public AiPowResponse getAiPowResponse(AiPowRequest aiPowRequest) throws IOException, NoSuchAlgorithmException {
         long startTime = System.currentTimeMillis();
         long elapsedTime = 0L;
         double epsilon = (float) 0.2; //DaBR epsilon ~20%
@@ -44,19 +47,7 @@ public class AiPowServiceImpl implements AiPowService {
         long endTime = (new Date()).getTime();
         elapsedTime = endTime - startTime;
 
-        return AiPowResponse.builder()
-                .startTime(String.valueOf(startTime))
-                .ip(ip)
-                .randomString(randomString)
-                .epsilon(String.valueOf(epsilon))
-                .endTime(String.valueOf(endTime))
-                .elapsedTime(String.valueOf(elapsedTime))
-                .appliedPolicy(getPolicyNumber(aiPowRequest.getAppliedPolicy()))
-                .reputation(reputation)
-                .requiredHashResult(newClientObj.getHash_solution())
-                .requiredBinaryResult(newClientObj.getBinaryResult())
-                .status("success")
-                .build();
+        return AiPowResponse.builder().startTime(String.valueOf(startTime)).ip(ip).randomString(randomString).epsilon(String.valueOf(epsilon)).endTime(String.valueOf(endTime)).elapsedTime(String.valueOf(elapsedTime)).appliedPolicy(getPolicyNumber(aiPowRequest.getAppliedPolicy())).reputation(reputation).requiredHashResult(newClientObj.getHash_solution()).requiredBinaryResult(newClientObj.getBinaryResult()).status("success").build();
     }
 
     private int getPolicyDifficulty(int policyNumber, double reputation) {
@@ -79,7 +70,16 @@ public class AiPowServiceImpl implements AiPowService {
 //                httpServletRequest.getRemoteAddr() : aiPowRequest.getIp();
 //    }
 
-    private double getReputation(String ip){
-        return 10.0;
+    private double getReputation(String ip) throws IOException {
+        OkHttpClient client = new OkHttpClient();
+        Gson gson = new Gson();
+
+        String url = "http://127.0.0.1:5000/getreputation/" + ip;
+        Request request = new Request.Builder().url(url).build(); // defaults to GET
+
+        Response response = client.newCall(request).execute();
+        IpReputationResponse ipReputationResponse = gson.fromJson(response.body().string(), IpReputationResponse.class);
+
+        return Double.parseDouble(ipReputationResponse.getReputation());
     }
 }
