@@ -31,10 +31,6 @@ for an adversary to sustain a volumetric DDoS attack.
 
 * That's All !
 
-
-    asdsadsa 
-
-
 ### Example Input: <br/>
     {
         "appliedPolicy": 2,
